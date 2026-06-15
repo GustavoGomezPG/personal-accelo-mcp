@@ -54,3 +54,24 @@ Time tracking (read/write):
 **Write safety:** only the four time-tracking tools can mutate, via a dedicated client path.
 `accelo_graphql` and all read tools stay strictly read-only. Write tools preview by default and
 require `confirm:true` to apply.
+- `accelo_sync_blitzit_week` — logs a week of completed Blitzit tasks into Accelo as time entries
+  (see section below). Requires a `config/blitzit-accelo-map.json` mapping file (or
+  `BLITZIT_ACCELO_MAP` env var override).
+
+## accelo_sync_blitzit_week
+
+Logs a week of completed Blitzit tasks into Accelo as time entries.
+
+- **Blitzit auth:** reads the Firebase refresh token from the local Blitzit **desktop app**
+  (`~/Library/Application Support/blitzit/...`). The app must be installed and signed in on the
+  same machine.
+- **Mapping:** copy `config/blitzit-accelo-map.example.json` to `config/blitzit-accelo-map.json`
+  (or set `BLITZIT_ACCELO_MAP`) and fill in each Blitzit project's Accelo
+  `{objectType, objectId}` (optionally `billable`, `workTypeId`). Unmapped projects are reported,
+  never logged.
+- **Inputs:** `from`/`to` (YYYY-MM-DD, default current week Mon–Sun), `listId` (optional Blitzit
+  list filter), `confirm` (default false = preview).
+- **Safety:** preview by default; logs only with `confirm:true`; skips entries already logged in
+  Accelo for the same day + subject; skips zero-duration tasks.
+- **Time source:** Blitzit `timeTaken` per task; entries are scheduled back-to-back from the
+  workday start per day (same engine as `accelo_log_time`).
