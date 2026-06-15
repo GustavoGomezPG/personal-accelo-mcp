@@ -4,7 +4,7 @@ import { text } from "./util.js";
 import { getCurrentUser } from "../accelo/identity.js";
 import { fetchMyWorkLogs } from "../accelo/worklogs.js";
 import { currentWeekRangeInTz } from "../accelo/dates.js";
-import { zonedDateTimeToEpoch, epochToDateInTz, todayInTz } from "../accelo/tz.js";
+import { dayRangeEpoch, epochToDateInTz, todayInTz } from "../accelo/tz.js";
 import { scheduleAndLogDay } from "./time-core.js";
 import { getBlitzitAuth } from "../blitzit/auth.js";
 import { createBlitzitClient } from "../blitzit/client.js";
@@ -21,21 +21,17 @@ export async function runBlitzitSync(
   const user = await getCurrentUser(client);
   const tz = config.workdayTz ?? user.timezone ?? "UTC";
 
-  let from: string;
-  let to: string;
-  if (opts.from && opts.to) {
-    from = opts.from;
-    to = opts.to;
-  } else if (opts.defaultRange === "day") {
-    from = to = opts.from ?? opts.to ?? todayInTz(tz);
-  } else {
-    const week = currentWeekRangeInTz(tz);
-    from = opts.from ?? week.from;
-    to = opts.to ?? week.to;
-  }
+  const defaults =
+    opts.defaultRange === "day"
+      ? (() => { const d = todayInTz(tz); return { from: d, to: d }; })()
+      : currentWeekRangeInTz(tz);
+  const from = opts.from ?? defaults.from;
+  const to = opts.to ?? defaults.to;
 
-  const fromMs = zonedDateTimeToEpoch(from, 0, 0, tz) * 1000;
-  const toMs = (zonedDateTimeToEpoch(to, 0, 0, tz) + 86400) * 1000; // exclusive end of `to`
+  const fromEpoch = dayRangeEpoch(from, tz).start;
+  const toEpochExclusive = dayRangeEpoch(to, tz).endExclusive;
+  const fromMs = fromEpoch * 1000;
+  const toMs = toEpochExclusive * 1000; // exclusive end of `to`
 
   const { idToken, uid } = await getBlitzitAuth();
   const tasks = await fetchWeekDoneTasks(createBlitzitClient(idToken), uid, fromMs, toMs, opts.listId);
@@ -43,8 +39,6 @@ export async function runBlitzitSync(
   const mapping = loadMapping();
 
   // Dedup against existing Accelo notes for the range. Capped at 100 entries (fetchMyWorkLogs max); a single user's week is well under this.
-  const fromEpoch = zonedDateTimeToEpoch(from, 0, 0, tz);
-  const toEpochExclusive = zonedDateTimeToEpoch(to, 0, 0, tz) + 86400;
   const existing = await fetchMyWorkLogs(client, fromEpoch, toEpochExclusive, user.staffId, 100);
   const existingKeys = new Set(existing.map((e) => `${epochToDateInTz(e.startEpoch, tz)}${DEDUP_SEP}${e.subject}`));
 
