@@ -18,11 +18,11 @@ export function parseMapping(json: string): Mapping {
   for (const [name, val] of Object.entries(raw as Record<string, unknown>)) {
     if (val === null || typeof val !== "object" || Array.isArray(val)) throw new Error(`Map entry "${name}" must be an object.`);
     const e = val as Record<string, unknown>;
-    if (typeof e.objectType !== "string" || !e.objectType) throw new Error(`Map entry "${name}" needs a string objectType.`);
+    if (typeof e.objectType !== "string" || !e.objectType.trim()) throw new Error(`Map entry "${name}" needs a string objectType.`);
     if (typeof e.objectId !== "number" || !Number.isInteger(e.objectId) || e.objectId <= 0) throw new Error(`Map entry "${name}" needs a positive integer objectId.`);
     const entry: MappingEntry = { objectType: e.objectType, objectId: e.objectId };
     if (typeof e.billable === "boolean") entry.billable = e.billable;
-    if (typeof e.workTypeId === "number" && Number.isInteger(e.workTypeId)) entry.workTypeId = e.workTypeId;
+    if (typeof e.workTypeId === "number" && Number.isInteger(e.workTypeId) && e.workTypeId > 0) entry.workTypeId = e.workTypeId;
     out[name] = entry;
   }
   return out;
@@ -45,5 +45,9 @@ export function loadMapping(path: string = defaultMapPath()): Mapping {
     if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e;
     throw new Error(`Blitzit→Accelo map not found at ${path}. Copy config/blitzit-accelo-map.example.json to that location and fill in Accelo object ids, or set BLITZIT_ACCELO_MAP.`, { cause: e });
   }
-  return parseMapping(json);
+  try {
+    return parseMapping(json);
+  } catch (e) {
+    throw new Error(`Invalid Blitzit→Accelo map at ${path}: ${(e as Error).message}`, { cause: e });
+  }
 }

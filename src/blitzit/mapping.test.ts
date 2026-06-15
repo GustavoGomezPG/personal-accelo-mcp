@@ -66,3 +66,29 @@ describe("loadMapping", () => {
     expect(() => loadMapping(join(tmpdir(), "definitely-missing-xyz.json"))).toThrow(/not found/i);
   });
 });
+
+describe("parseMapping (whitespace/workTypeId guards)", () => {
+  it("rejects a whitespace-only objectType", () => {
+    expect(() => parseMapping('{"X":{"objectType":"  ","objectId":1}}')).toThrow(/objectType/i);
+  });
+  it("ignores a non-positive workTypeId", () => {
+    const m = parseMapping('{"X":{"objectType":"task","objectId":1,"workTypeId":-5}}');
+    expect(m.X.workTypeId).toBeUndefined();
+  });
+  it("keeps a positive workTypeId", () => {
+    const m = parseMapping('{"X":{"objectType":"task","objectId":1,"workTypeId":9}}');
+    expect(m.X.workTypeId).toBe(9);
+  });
+});
+
+describe("loadMapping (malformed JSON)", () => {
+  it("throws a path-tagged error for invalid JSON in an existing file", () => {
+    const p = join(tmpdir(), `blz-bad-${Date.now()}.json`);
+    writeFileSync(p, "{not json");
+    try {
+      expect(() => loadMapping(p)).toThrow(/invalid blitzit/i);
+    } finally {
+      rmSync(p, { force: true });
+    }
+  });
+});
