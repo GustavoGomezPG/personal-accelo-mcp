@@ -54,3 +54,8 @@ export function epochToHmInTz(epoch: number, tz: string): string {
 export function todayInTz(tz: string, now: Date = new Date()): string {
   return epochToYmdInTz(Math.floor(now.getTime() / 1000), tz);
 }
+
+/** Date (YYYY-MM-DD) of an epoch (seconds) in `tz`. */
+export function epochToDateInTz(epochSeconds: number, tz: string): string {
+  return epochToYmdInTz(epochSeconds, tz);
+}
