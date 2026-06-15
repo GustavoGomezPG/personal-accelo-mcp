@@ -91,7 +91,7 @@ sub-selected to useful scalars, e.g. `status { id title }`, `company { id name }
 |---|---|
 | `accelo_search_companies` / `accelo_get_company` | id, name, status, phoneNumber, website, accountManagers, activeProjectCount, activeTicketCount, primaryAddress, createdDate, lastModifiedDate |
 | `accelo_search_contacts` / `accelo_get_contact` | id, name, status, primaryAffiliatedCompany, addresses, lastContactDate |
-| `accelo_search_projects` / `accelo_get_project` | id, title, company, manager, status, standing, budget, commencedDate, completedDate, dueDate |
+| `accelo_search_projects` / `accelo_get_project` | id, title, company, manager, status, standing, budget, commencedDate, completedDate, createdDate |
 | `accelo_search_tickets` / `accelo_get_ticket` | id, title, company, assignee, status, priority, openedDate, dueDate, resolution, resolutionNotes |
 | `accelo_search_tasks` / `accelo_get_task` | id, title, assignee, status, project, ticket, milestone, scheduledStartDate, scheduledDueDate, totalLoggedTime, totalBudgetedTime |
 
