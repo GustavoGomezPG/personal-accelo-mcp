@@ -55,5 +55,7 @@ describe("accelo_sync_blitzit_week", () => {
     expect(p.mode).toBe("logged");
     expect((c.mutate as any).mock.calls).toHaveLength(1);
     expect((c.mutate as any).mock.calls[0][1].input.workLogSubject).toBe("Datamax :: Web :: dns");
+    expect(p.days).toHaveLength(1);
+    expect(p.days[0].logged).toBe(1);
   });
 });
