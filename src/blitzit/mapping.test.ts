@@ -1,5 +1,8 @@
-import { describe, it, expect } from "vitest";
-import { parseMapping, resolveMapping } from "./mapping.js";
+import { describe, it, expect, afterEach } from "vitest";
+import { parseMapping, resolveMapping, loadMapping, defaultMapPath } from "./mapping.js";
+import { writeFileSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 
 describe("parseMapping", () => {
   it("parses a valid map", () => {
@@ -24,5 +27,42 @@ describe("resolveMapping", () => {
   });
   it("returns undefined for an unknown project", () => {
     expect(resolveMapping(m, "Nope")).toBeUndefined();
+  });
+});
+
+describe("parseMapping (additional guards)", () => {
+  it("rejects objectId of 0 (unfilled placeholder)", () => {
+    expect(() => parseMapping('{"X":{"objectType":"task","objectId":0}}')).toThrow(/objectId/i);
+  });
+  it("rejects an array entry", () => {
+    expect(() => parseMapping('{"X":[1,2,3]}')).toThrow(/object/i);
+  });
+});
+
+describe("defaultMapPath", () => {
+  const prev = process.env.BLITZIT_ACCELO_MAP;
+  afterEach(() => { if (prev === undefined) delete process.env.BLITZIT_ACCELO_MAP; else process.env.BLITZIT_ACCELO_MAP = prev; });
+  it("uses the BLITZIT_ACCELO_MAP env var when set", () => {
+    process.env.BLITZIT_ACCELO_MAP = "/tmp/custom-map.json";
+    expect(defaultMapPath()).toBe("/tmp/custom-map.json");
+  });
+  it("falls back to the bundled path when the env var is empty", () => {
+    process.env.BLITZIT_ACCELO_MAP = "   ";
+    expect(defaultMapPath().endsWith("config/blitzit-accelo-map.json")).toBe(true);
+  });
+});
+
+describe("loadMapping", () => {
+  it("reads and parses a map file at an explicit path", () => {
+    const p = join(tmpdir(), `blz-map-${Date.now()}.json`);
+    writeFileSync(p, '{"Datamax":{"objectType":"task","objectId":5}}');
+    try {
+      expect(loadMapping(p)).toEqual({ Datamax: { objectType: "task", objectId: 5 } });
+    } finally {
+      rmSync(p, { force: true });
+    }
+  });
+  it("throws an actionable error when the file is missing", () => {
+    expect(() => loadMapping(join(tmpdir(), "definitely-missing-xyz.json"))).toThrow(/not found/i);
   });
 });
