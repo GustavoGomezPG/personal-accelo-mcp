@@ -5,7 +5,7 @@ import type { ToolDescriptor } from "./factory.js";
 import { text } from "./util.js";
 import { getCurrentUser } from "../accelo/identity.js";
 import { fetchMyWorkLogs } from "../accelo/worklogs.js";
-import { currentWeekRange } from "../accelo/dates.js";
+import { currentWeekRangeInTz } from "../accelo/dates.js";
 import { zonedDateTimeToEpoch, epochToDateInTz } from "../accelo/tz.js";
 import { scheduleAndLogDay } from "./time-core.js";
 import { getBlitzitAuth } from "../blitzit/auth.js";
@@ -26,12 +26,12 @@ export function buildBlitzitSyncTool(client: AcceloClient, config: AcceloConfig)
       confirm: z.boolean().optional().describe("Set true to actually log; otherwise returns a preview."),
     },
     handler: async (args) => {
-      const week = currentWeekRange();
-      const from = args.from ?? week.from;
-      const to = args.to ?? week.to;
-
       const user = await getCurrentUser(client);
       const tz = config.workdayTz ?? user.timezone ?? "UTC";
+
+      const week = currentWeekRangeInTz(tz);
+      const from = args.from ?? week.from;
+      const to = args.to ?? week.to;
 
       // Blitzit task window in the user's timezone (endTime is absolute ms).
       const fromMs = zonedDateTimeToEpoch(from, 0, 0, tz) * 1000;
@@ -45,6 +45,7 @@ export function buildBlitzitSyncTool(client: AcceloClient, config: AcceloConfig)
       // Existing Accelo entries across the week → dedup keys "date subject".
       const fromEpoch = zonedDateTimeToEpoch(from, 0, 0, tz);
       const toEpochExclusive = zonedDateTimeToEpoch(to, 0, 0, tz) + 86400;
+      // Dedup against existing Accelo notes for the week. Capped at 100 entries/week (fetchMyWorkLogs max); a single user's week is well under this.
       const existing = await fetchMyWorkLogs(client, fromEpoch, toEpochExclusive, user.staffId, 100);
       const existingKeys = new Set(existing.map((e) => `${epochToDateInTz(e.startEpoch, tz)}${DEDUP_SEP}${e.subject}`));
 

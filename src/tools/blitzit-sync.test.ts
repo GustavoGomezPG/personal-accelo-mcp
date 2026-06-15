@@ -18,6 +18,7 @@ vi.mock("../blitzit/tasks.js", () => ({
 import { buildBlitzitSyncTool } from "./blitzit-sync.js";
 import type { AcceloClient } from "../accelo/client.js";
 import type { AcceloConfig } from "../config.js";
+import { fetchWeekDoneTasks } from "../blitzit/tasks.js";
 
 const config = { deployment: "d", sessionCookie: "c", endpoint: "e", workdayStartHour: 8, workdayTz: "America/Los_Angeles" } as AcceloConfig;
 const LA_ME = { acceloConfig: { userConfig: { currentUser: { __typename: "Staff", id: "482", timezone: "America/Los_Angeles" } } } };
@@ -57,5 +58,20 @@ describe("accelo_sync_blitzit_week", () => {
     expect((c.mutate as any).mock.calls[0][1].input.workLogSubject).toBe("Datamax :: Web :: dns");
     expect(p.days).toHaveLength(1);
     expect(p.days[0].logged).toBe(1);
+  });
+
+  it("schedules each completion day separately", async () => {
+    const jun9 = Date.UTC(2026, 5, 9, 15, 0, 0);
+    (fetchWeekDoneTasks as any).mockResolvedValueOnce([
+      { id: "a", project: "Datamax", topic: "Web", detail: "day1", seconds: 3600, endTimeMs: jun8, listId: "L1", board: "done" },
+      { id: "b", project: "Datamax", topic: "Web", detail: "day2", seconds: 3600, endTimeMs: jun9, listId: "L1", board: "done" },
+    ]);
+    const c = client();
+    // getCurrentUser, week-dedup fetch, then one per-day fetch for each of the 2 days
+    (c.query as any).mockResolvedValueOnce(LA_ME).mockResolvedValueOnce(EMPTY_NOTES).mockResolvedValueOnce(EMPTY_NOTES).mockResolvedValueOnce(EMPTY_NOTES);
+    const res = await buildBlitzitSyncTool(c, config).handler({ from: "2026-06-08", to: "2026-06-14", confirm: true });
+    const p = JSON.parse(res.content[0].text);
+    expect(p.days.map((d: any) => d.date)).toEqual(["2026-06-08", "2026-06-09"]);
+    expect((c.mutate as any).mock.calls).toHaveLength(2);
   });
 });

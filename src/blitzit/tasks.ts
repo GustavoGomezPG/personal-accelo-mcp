@@ -37,8 +37,10 @@ export function parseDescription(html: string): { topic: string; detail: string 
 
 type FsFields = Record<string, { stringValue?: string; integerValue?: string }>;
 
+const DONE_BOARD = "done";
+
 function str(f: FsFields, key: string): string { return f[key]?.stringValue ?? ""; }
-function int(f: FsFields, key: string): number { const v = f[key]?.integerValue; return v ? Number(v) : 0; }
+function int(f: FsFields, key: string): number { const n = Number(f[key]?.integerValue); return Number.isFinite(n) ? n : 0; }
 
 export function normalizeTask(id: string, fields: FsFields): BlitzitTask {
   const { topic, detail } = parseDescription(str(fields, "description"));
@@ -61,6 +63,6 @@ export async function fetchWeekDoneTasks(
   const docs = await client.queryTasksByOwner(uid);
   return docs
     .map((d) => normalizeTask(d.id, d.fields))
-    .filter((t) => t.board === "done" && t.endTimeMs >= fromMs && t.endTimeMs < toMs && (!listId || t.listId === listId))
+    .filter((t) => t.board === DONE_BOARD && t.endTimeMs >= fromMs && t.endTimeMs < toMs && (!listId || t.listId === listId))
     .sort((a, b) => a.endTimeMs - b.endTimeMs);
 }
