@@ -8,7 +8,7 @@ endpoint, so no OAuth application is required.
 
 1. `npm install && npm run build`
 2. Copy `.env.example` to `.env` and fill in:
-   - `ACCELO_DEPLOYMENT` — your subdomain (e.g. `provisionsgroup`).
+   - `ACCELO_DEPLOYMENT` — your subdomain (e.g. `yourcompany` for `yourcompany.accelo.com`).
    - `ACCELO_SESSION_COOKIE` — the `AFFINITYLIVE` cookie value:
      Chrome DevTools → Application → Cookies → `https://<deployment>.accelo.com`
      → `AFFINITYLIVE` → copy **Value**.
@@ -27,7 +27,7 @@ Add to your MCP client config:
       "command": "node",
       "args": ["/absolute/path/to/accelo-mcp/dist/index.js"],
       "env": {
-        "ACCELO_DEPLOYMENT": "provisionsgroup",
+        "ACCELO_DEPLOYMENT": "<your-deployment>",
         "ACCELO_SESSION_COOKIE": "<AFFINITYLIVE value>"
       }
     }
