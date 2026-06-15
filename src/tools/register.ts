@@ -8,6 +8,7 @@ import { buildListTimeTool } from "./time-list.js";
 import { buildEditTimeTool } from "./time-edit.js";
 import { buildDeleteTimeTool } from "./time-delete.js";
 import { buildBlitzitSyncTool } from "./blitzit-sync.js";
+import { buildBlitzitSyncDayTool } from "./blitzit-sync-day.js";
 
 export function collectTools(client: AcceloClient, config: AcceloConfig): ToolDescriptor[] {
   const entityTools = ENTITIES.flatMap((entity) => buildEntityTools(entity, client));
@@ -17,6 +18,7 @@ export function collectTools(client: AcceloClient, config: AcceloConfig): ToolDe
     buildEditTimeTool(client),
     buildDeleteTimeTool(client),
     buildBlitzitSyncTool(client, config),
+    buildBlitzitSyncDayTool(client, config),
   ];
   return [...entityTools, ...buildExtraTools(client), ...timeTools];
 }
