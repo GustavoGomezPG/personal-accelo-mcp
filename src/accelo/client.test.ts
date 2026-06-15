@@ -6,6 +6,7 @@ const config: AcceloConfig = {
   deployment: "demo",
   sessionCookie: "COOKIEVAL",
   endpoint: "https://demo.accelo.com/graphql",
+  workdayStartHour: 8,
 };
 
 function jsonResponse(body: unknown, status = 200) {

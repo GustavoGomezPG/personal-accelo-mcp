@@ -6,7 +6,7 @@ import type { AcceloClient } from "../accelo/client.js";
 const companies = ENTITIES.find((e) => e.key === "companies")!;
 
 function fakeClient(data: unknown): AcceloClient {
-  return { query: vi.fn().mockResolvedValue(data) as any };
+  return { query: vi.fn().mockResolvedValue(data) as any, mutate: vi.fn() as any };
 }
 
 describe("buildEntityTools", () => {

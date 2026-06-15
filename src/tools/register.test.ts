@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { collectTools } from "./register.js";
 import type { AcceloClient } from "../accelo/client.js";
 
-const client: AcceloClient = { query: vi.fn() as any };
+const client: AcceloClient = { query: vi.fn() as any, mutate: vi.fn() as any };
 
 describe("collectTools", () => {
   it("includes search+get for all 5 entities plus 2 extra tools", () => {

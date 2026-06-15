@@ -3,7 +3,7 @@ import { buildExtraTools } from "./extras.js";
 import type { AcceloClient } from "../accelo/client.js";
 
 function fakeClient(impl: (q: string, v?: any) => any): AcceloClient {
-  return { query: vi.fn(impl) as any };
+  return { query: vi.fn(impl) as any, mutate: vi.fn() as any };
 }
 
 describe("buildExtraTools", () => {
