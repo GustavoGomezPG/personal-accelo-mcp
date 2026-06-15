@@ -37,12 +37,20 @@ Add to your MCP client config:
 
 ## Tools
 
-Read-only. For each of **companies, contacts, projects, tickets, tasks**:
-- `accelo_search_<entities>` — free-text search + id filters + sort + pagination.
-- `accelo_get_<entity>` — fetch one by numeric id.
+Read tools (read-only). For each of **companies, contacts, projects, tickets, tasks**:
+- `accelo_search_<entities>` and `accelo_get_<entity>`.
+Schema escape hatches (read-only): `accelo_graphql`, `accelo_introspect`.
 
-Escape hatches:
-- `accelo_graphql` — run an arbitrary read-only GraphQL query.
-- `accelo_introspect` — explore the schema (root fields, or a named type).
+Time tracking (read/write):
+- `accelo_log_time` — log one or more entries for a day using the `Project :: Topic :: Description`
+  nomenclature. Entries are sequenced with no overlap: they start at the workday start
+  (`ACCELO_WORKDAY_START_HOUR`, default 8) in your Accelo timezone (override with
+  `ACCELO_WORKDAY_TZ`), back-to-back, resuming after anything already logged that day. Preview by
+  default; pass `confirm:true` to log.
+- `accelo_list_my_time` — list your entries for a date range (default current week).
+- `accelo_edit_time` — change an entry's logged time and/or subject (preview/confirm).
+- `accelo_delete_time` — delete an entry (requires `confirm:true`).
 
-Mutations and subscriptions are always rejected.
+**Write safety:** only the four time-tracking tools can mutate, via a dedicated client path.
+`accelo_graphql` and all read tools stay strictly read-only. Write tools preview by default and
+require `confirm:true` to apply.
