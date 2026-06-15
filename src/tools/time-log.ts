@@ -3,15 +3,13 @@ import type { AcceloClient } from "../accelo/client.js";
 import type { AcceloConfig } from "../config.js";
 import type { ToolDescriptor } from "./factory.js";
 import { text } from "./util.js";
-import { parseDuration, formatDuration } from "../accelo/time.js";
+import { parseDuration } from "../accelo/time.js";
 import { buildSubject } from "../accelo/nomenclature.js";
 import { getCurrentUser } from "../accelo/identity.js";
-import { fetchMyWorkLogs, entryEnd } from "../accelo/worklogs.js";
-import { zonedDateTimeToEpoch, dayRangeEpoch, epochToHmInTz, todayInTz } from "../accelo/tz.js";
+import { todayInTz } from "../accelo/tz.js";
+import { scheduleAndLogDay, type PreparedEntry } from "./time-core.js";
 
 const OBJECT_TYPES = ["task", "ticket", "project", "milestone", "retainer", "sale"] as const;
-
-const LOG_MUTATION = `mutation Log($input: createWorkLogArgs!) { createWorkLogNote(input: $input) { id subject } }`;
 
 const entrySchema = z.object({
   objectId: z.number().int().describe("Object id to log against (usually a task id)."),
@@ -35,8 +33,7 @@ export function buildLogTimeTool(client: AcceloClient, config: AcceloConfig): To
       confirm: z.boolean().optional().describe("Set true to actually log; otherwise returns the schedule preview."),
     },
     handler: async (args) => {
-      // 1. Validate + prepare everything first (abort the whole batch before any network call).
-      const prepared = (args.entries as Array<z.infer<typeof entrySchema>>).map((e) => ({
+      const prepared: PreparedEntry[] = (args.entries as Array<z.infer<typeof entrySchema>>).map((e) => ({
         objectId: e.objectId,
         objectType: e.objectType ?? "task",
         subject: buildSubject(e.projectLabel, e.topic, e.description),
@@ -46,55 +43,18 @@ export function buildLogTimeTool(client: AcceloClient, config: AcceloConfig): To
         workTypeId: e.workTypeId,
       }));
 
-      // 2. Resolve user + timezone.
       const user = await getCurrentUser(client);
       const tz = config.workdayTz ?? user.timezone ?? "UTC";
       const date = args.date ?? todayInTz(tz);
 
-      // 3. Compute the starting cursor (8am, or after existing same-day entries).
-      const workdayStart = zonedDateTimeToEpoch(date, config.workdayStartHour, 0, tz);
-      const { start, endExclusive } = dayRangeEpoch(date, tz);
-      const existing = await fetchMyWorkLogs(client, start, endExclusive, user.staffId);
-      const latestEnd = existing.reduce((max, e) => Math.max(max, entryEnd(e)), 0);
-      const resumedAfterExisting = existing.length > 0 && latestEnd > workdayStart;
-      let cursor = Math.max(workdayStart, latestEnd);
-
-      // 4. Assign sequential start times.
-      const scheduled = prepared.map((p) => {
-        const startEpoch = cursor;
-        cursor += p.seconds;
-        return { ...p, startEpoch, endEpoch: cursor };
+      const r = await scheduleAndLogDay(client, {
+        tz, staffId: user.staffId, workdayStartHour: config.workdayStartHour, date, prepared, confirm: !!args.confirm,
       });
 
-      const schedule = scheduled.map((s) => ({
-        subject: s.subject,
-        against: { id: s.objectId, type: s.objectType },
-        start: epochToHmInTz(s.startEpoch, tz),
-        end: epochToHmInTz(s.endEpoch, tz),
-        loggedTime: formatDuration(s.seconds),
-        billable: s.billable,
-      }));
-
-      // 5. Preview or commit.
       if (!args.confirm) {
-        return text({ preview: true, date, tz, resumedAfterExisting, willLog: "Set confirm:true to log these entries.", entries: schedule });
+        return text({ preview: true, date, tz, resumedAfterExisting: r.resumedAfterExisting, willLog: "Set confirm:true to log these entries.", entries: r.schedule });
       }
-
-      const created: Array<{ id: string; subject: string; start: string; loggedTime: string }> = [];
-      for (const s of scheduled) {
-        const input: Record<string, unknown> = {
-          workLogAgainstObject: { id: s.objectId, type: s.objectType },
-          workLogSubject: s.subject,
-          workLogBody: s.body,
-          workLogLoggedTime: s.seconds,
-          workLogIsBillable: s.billable,
-          workLogDate: s.startEpoch,
-        };
-        if (s.workTypeId !== undefined) input.workLogClassId = s.workTypeId;
-        const data = await client.mutate<{ createWorkLogNote: { id: string; subject: string } }>(LOG_MUTATION, { input });
-        created.push({ id: data.createWorkLogNote.id, subject: data.createWorkLogNote.subject, start: epochToHmInTz(s.startEpoch, tz), loggedTime: formatDuration(s.seconds) });
-      }
-      return text({ logged: true, date, tz, resumedAfterExisting, created });
+      return text({ logged: true, date, tz, resumedAfterExisting: r.resumedAfterExisting, created: r.created });
     },
   };
 }
