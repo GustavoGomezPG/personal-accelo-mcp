@@ -1,3 +1,5 @@
+import type { BlitzitClient } from "./client.js";
+
 export interface BlitzitTask {
   id: string;
   project: string;
@@ -50,4 +52,15 @@ export function normalizeTask(id: string, fields: FsFields): BlitzitTask {
     listId: fields.listId?.stringValue ?? null,
     board: str(fields, "board"),
   };
+}
+
+/** Owner's done tasks whose endTime is in [fromMs, toMs), optionally filtered by Blitzit listId. */
+export async function fetchWeekDoneTasks(
+  client: BlitzitClient, uid: string, fromMs: number, toMs: number, listId?: string,
+): Promise<BlitzitTask[]> {
+  const docs = await client.queryTasksByOwner(uid);
+  return docs
+    .map((d) => normalizeTask(d.id, d.fields))
+    .filter((t) => t.board === "done" && t.endTimeMs >= fromMs && t.endTimeMs < toMs && (!listId || t.listId === listId))
+    .sort((a, b) => a.endTimeMs - b.endTimeMs);
 }

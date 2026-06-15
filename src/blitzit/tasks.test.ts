@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { parseDescription, normalizeTask, decodeEntities } from "./tasks.js";
+import { fetchWeekDoneTasks } from "./tasks.js";
+import type { BlitzitClient, FirestoreDoc } from "./client.js";
 
 describe("decodeEntities", () => {
   it("decodes common HTML entities", () => {
@@ -41,5 +43,33 @@ describe("normalizeTask", () => {
     expect(normalizeTask("x", { title: { stringValue: "Internal" } })).toEqual({
       id: "x", project: "Internal", topic: "", detail: "", seconds: 0, endTimeMs: 0, listId: null, board: "",
     });
+  });
+});
+
+function mockClient(docs: FirestoreDoc[]): BlitzitClient {
+  return { queryTasksByOwner: async () => docs };
+}
+const doc = (id: string, title: string, board: string, endTimeMs: number, listId = "L1"): FirestoreDoc => ({
+  id, fields: {
+    title: { stringValue: title }, board: { stringValue: board },
+    description: { stringValue: "<strong>Web</strong><br>x" }, timeTaken: { integerValue: "3600000" },
+    endTime: { integerValue: String(endTimeMs) }, listId: { stringValue: listId },
+  },
+});
+
+describe("fetchWeekDoneTasks", () => {
+  it("keeps only done tasks whose endTime is within [fromMs, toMs)", async () => {
+    const c = mockClient([
+      doc("a", "Datamax", "done", 1000),
+      doc("b", "Datamax", "done", 5000),     // out of range
+      doc("c", "Datamax", "todo", 1500),     // not done
+    ]);
+    const out = await fetchWeekDoneTasks(c, "uid", 500, 2000);
+    expect(out.map((t) => t.id)).toEqual(["a"]);
+  });
+  it("filters by listId when provided", async () => {
+    const c = mockClient([doc("a", "Datamax", "done", 1000, "L1"), doc("b", "Datamax", "done", 1100, "L2")]);
+    const out = await fetchWeekDoneTasks(c, "uid", 0, 5000, "L2");
+    expect(out.map((t) => t.id)).toEqual(["b"]);
   });
 });
