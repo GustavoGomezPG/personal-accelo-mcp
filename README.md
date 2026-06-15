@@ -57,6 +57,9 @@ require `confirm:true` to apply.
 - `accelo_sync_blitzit_week` — logs a week of completed Blitzit tasks into Accelo as time entries
   (see section below). Requires a `config/blitzit-accelo-map.json` mapping file (or
   `BLITZIT_ACCELO_MAP` env var override).
+- `accelo_sync_blitzit_day` — same as the week tool, for a single day (input `date`, default today
+  in your timezone). Use this for "sync my day to accelo". Shares the same mapping, preview/confirm,
+  and dedup behavior.
 
 ## accelo_sync_blitzit_week
 
@@ -75,3 +78,9 @@ Logs a week of completed Blitzit tasks into Accelo as time entries.
   Accelo for the same day + subject; skips zero-duration tasks.
 - **Time source:** Blitzit `timeTaken` per task; entries are scheduled back-to-back from the
   workday start per day (same engine as `accelo_log_time`).
+
+### accelo_sync_blitzit_day
+
+Single-day variant of the above (use for "sync my day to accelo"). Input `date` (YYYY-MM-DD,
+default today in your timezone), plus `listId` and `confirm`. Same mapping file, preview-by-default,
+dedup, and skip rules as the week tool.
