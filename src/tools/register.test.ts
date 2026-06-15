@@ -9,9 +9,9 @@ const config = { deployment: "d", sessionCookie: "c", endpoint: "e", workdayStar
 describe("collectTools", () => {
   it("includes read tools plus the four time-tracking tools (16 total)", () => {
     const names = collectTools(client, config).map((t) => t.name).sort();
-    for (const n of ["accelo_search_companies", "accelo_graphql", "accelo_log_time", "accelo_list_my_time", "accelo_edit_time", "accelo_delete_time"])
+    for (const n of ["accelo_search_companies", "accelo_graphql", "accelo_log_time", "accelo_list_my_time", "accelo_edit_time", "accelo_delete_time", "accelo_sync_blitzit_week"])
       expect(names).toContain(n);
-    expect(names.length).toBe(16);
+    expect(names.length).toBe(17);
   });
   it("has no duplicate names", () => {
     const names = collectTools(client, config).map((t) => t.name);
