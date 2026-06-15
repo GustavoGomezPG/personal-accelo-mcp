@@ -11,7 +11,7 @@ async function main() {
   const client = createClient(config);
   const server = new McpServer({ name: "accelo-mcp", version: "0.1.0" });
 
-  for (const tool of collectTools(client)) {
+  for (const tool of collectTools(client, config)) {
     server.registerTool(
       tool.name,
       { description: tool.description, inputSchema: tool.inputSchema },
