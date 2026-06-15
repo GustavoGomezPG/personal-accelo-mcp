@@ -37,10 +37,12 @@ export function buildEntityTools(entity: EntityConfig, client: AcceloClient): To
     handler: async (args) => {
       const first = Math.min(Math.max(args.first ?? 20, 1), 100);
       const filters = buildFilterBlock(entity, args);
-      const sort = {
-        key: args.sortKey ?? entity.defaultSort.key,
-        order: args.sortOrder ?? entity.defaultSort.order,
-      };
+      const sort = [
+        {
+          key: args.sortKey ?? entity.defaultSort.key,
+          order: args.sortOrder ?? entity.defaultSort.order,
+        },
+      ];
       const data = await client.query<Record<string, Connection<unknown>>>(searchQuery, {
         filters,
         sort,

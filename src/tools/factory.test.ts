@@ -34,7 +34,7 @@ describe("buildEntityTools", () => {
 
     const [, variables] = (client.query as any).mock.calls[0];
     expect(variables.filters).toEqual([{ texts: [{ key: "CompanyName", type: "contains", value: "Acme" }] }]);
-    expect(variables.sort).toEqual({ key: "CompanyName", order: "ASC" });
+    expect(variables.sort).toEqual([{ key: "CompanyName", order: "ASC" }]);
     expect(variables.first).toBe(10);
   });
 

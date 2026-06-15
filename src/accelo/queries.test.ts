@@ -36,7 +36,7 @@ describe("buildSearchQuery", () => {
     const q = buildSearchQuery(companies);
     expect(q).toContain("companies(filters:$filters");
     expect(q).toContain("$filters:[companiesFilterAndBlockInput!]!");
-    expect(q).toContain("$sort:companiesSortFieldInput");
+    expect(q).toContain("$sort:[companiesSortFieldInput!]");
     expect(q).toContain("totalCount");
     expect(q).toContain("pageInfo { hasNextPage endCursor }");
     expect(q).toContain("name"); // from the company selection

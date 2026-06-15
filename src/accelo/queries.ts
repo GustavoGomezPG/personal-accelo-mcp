@@ -27,7 +27,7 @@ export function buildFilterBlock(entity: EntityConfig, args: SearchArgs): Filter
 export function buildSearchQuery(entity: EntityConfig): string {
   const filterType = `${entity.rootField}FilterAndBlockInput`;
   const sortType = `${entity.rootField}SortFieldInput`;
-  return `query Search($filters:[${filterType}!]!, $sort:${sortType}, $first:Int, $after:String) {
+  return `query Search($filters:[${filterType}!]!, $sort:[${sortType}!], $first:Int, $after:String) {
   ${entity.rootField}(filters:$filters, sort:$sort, first:$first, after:$after) {
     totalCount
     pageInfo { hasNextPage endCursor }
