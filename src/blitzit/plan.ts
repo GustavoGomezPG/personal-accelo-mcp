@@ -31,9 +31,15 @@ export function planSync(params: {
     if (!entry) { unmappedCounts.set(t.project, (unmappedCounts.get(t.project) ?? 0) + 1); continue; }
     if (t.seconds <= 0) { skippedZero.push({ id: t.id, project: t.project }); continue; }
 
-    const topic = t.topic || "General";
-    const detail = t.detail || t.topic || t.project;
-    const subject = buildSubject(t.project, topic, detail);
+    const topic = t.topic.trim();
+    const detail = t.detail.trim();
+    // Blitzit titles already encode `Client::SubProject::Description`, so use the
+    // title as-is. Only fall back to the `project :: topic :: description`
+    // nomenclature when the task carries a genuine description distinct from its
+    // title (otherwise the title gets duplicated on both sides of the topic).
+    const subject = detail && detail !== t.project
+      ? buildSubject(t.project, topic || "General", detail)
+      : t.project;
     const date = epochToDateInTz(Math.floor(t.endTimeMs / 1000), tz);
 
     if (existingKeys.has(`${date}${DEDUP_SEP}${subject}`)) { skippedDuplicates.push({ date, subject }); continue; }

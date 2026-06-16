@@ -36,8 +36,8 @@ describe("planSync", () => {
     expect(plan.days).toHaveLength(0);
     expect(plan.skippedDuplicates).toEqual([{ date: "2026-06-08", subject: "Datamax :: Web :: did x" }]);
   });
-  it("fills empty topic/detail so the subject is always valid", () => {
-    const plan = planSync({ tasks: [task("a", "Datamax", 60, jun8, "", "")], mapping: { Datamax: { objectType: "task", objectId: 7 } }, existingKeys: new Set(), tz: TZ });
-    expect(plan.days[0].prepared[0].subject).toBe("Datamax :: General :: Datamax");
+  it("uses the title as-is when there is no real description (no duplication)", () => {
+    const plan = planSync({ tasks: [task("a", "Datamax::Website::Fix ADP widgets", 60, jun8, "", "")], mapping: { "Datamax::Website": { objectType: "task", objectId: 7 } }, existingKeys: new Set(), tz: TZ });
+    expect(plan.days[0].prepared[0].subject).toBe("Datamax::Website::Fix ADP widgets");
   });
 });
