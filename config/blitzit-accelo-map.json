@@ -16,5 +16,6 @@
   "Provisions Group": { "objectType": "task", "objectId": 35183, "billable": false },
   "Houston Eye": { "objectType": "task", "objectId": 35183, "billable": false },
   "CAIA Connect": { "objectType": "task", "objectId": 35183, "billable": false },
+  "CAIAConnect": { "objectType": "task", "objectId": 35183, "billable": false },
   "ConsiderItDone": { "objectType": "task", "objectId": 35183, "billable": false }
 }
