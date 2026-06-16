@@ -28,8 +28,22 @@ export function parseMapping(json: string): Mapping {
   return out;
 }
 
+/**
+ * Resolve a Blitzit task title to a mapping entry. Blitzit titles encode
+ * `Client::SubProject::Description` in the title field, so we match the longest
+ * mapping key that the title's leading `::` segments equal (segment boundaries
+ * only — never a substring). Falls back to an exact match for keys without `::`.
+ */
 export function resolveMapping(map: Mapping, project: string): MappingEntry | undefined {
-  return map[project];
+  const exact = map[project];
+  if (exact) return exact;
+  const segments = project.split("::").map((s) => s.trim());
+  // Longest prefix first so a more specific "A::B" key wins over "A".
+  for (let n = segments.length; n >= 1; n--) {
+    const key = segments.slice(0, n).join("::");
+    if (map[key]) return map[key];
+  }
+  return undefined;
 }
 
 export function defaultMapPath(): string {

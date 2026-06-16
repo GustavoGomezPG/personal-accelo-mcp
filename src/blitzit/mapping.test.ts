@@ -28,6 +28,20 @@ describe("resolveMapping", () => {
   it("returns undefined for an unknown project", () => {
     expect(resolveMapping(m, "Nope")).toBeUndefined();
   });
+  it("matches the first '::' segment of a Blitzit title", () => {
+    expect(resolveMapping(m, "Datamax::Website::Fix ADP widgets")).toEqual({ objectType: "task", objectId: 1 });
+  });
+  it("tolerates whitespace around '::' separators", () => {
+    expect(resolveMapping(m, " Datamax :: Website :: Thing")).toEqual({ objectType: "task", objectId: 1 });
+  });
+  it("prefers the longest matching key prefix", () => {
+    const mm = { Datamax: { objectType: "task", objectId: 1 }, "Datamax::Website": { objectType: "task", objectId: 2 } };
+    expect(resolveMapping(mm, "Datamax::Website::Fix")).toEqual({ objectType: "task", objectId: 2 });
+    expect(resolveMapping(mm, "Datamax::CRM::Fix")).toEqual({ objectType: "task", objectId: 1 });
+  });
+  it("does not match a partial segment (substring) of a key", () => {
+    expect(resolveMapping(m, "Datamaximus::Website")).toBeUndefined();
+  });
 });
 
 describe("parseMapping (additional guards)", () => {
