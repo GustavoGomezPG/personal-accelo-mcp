@@ -29,7 +29,7 @@ Single tool `accelo_sync_blitzit_week` orchestrating a pipeline. New `src/blitzi
 - **`auth.ts`** — `getBlitzitAuth(): Promise<{ idToken, uid }>`
   - Locate `~/Library/Application Support/blitzit/IndexedDB/app_._0.indexeddb.leveldb`, read its files, extract the refresh token via regex `AMf-[A-Za-z0-9_\-]{60,}` (longest match).
   - Mint an ID token: POST `https://securetoken.googleapis.com/v1/token?key=<FIREBASE_API_KEY>` with `grant_type=refresh_token&refresh_token=<rt>`; return `access_token` as `idToken` and `user_id` as `uid`.
-  - `FIREBASE_API_KEY` constant: `AIzaSyBfWWxV-jps9AOAS5eSIFx8cXl_BeMOb7U` (public Firebase web key).
+  - Firebase web API key: supplied via the `BLITZIT_FIREBASE_API_KEY` env var (Blitzit's public, project-identifying key — not committed).
   - Errors: app dir/token not found → actionable message ("open/sign into the Blitzit desktop app").
 
 - **`client.ts`** — Firestore REST helper

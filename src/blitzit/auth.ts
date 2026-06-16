@@ -2,7 +2,21 @@ import { readdirSync, readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 
-export const FIREBASE_API_KEY = "AIzaSyBfWWxV-jps9AOAS5eSIFx8cXl_BeMOb7U";
+/**
+ * Blitzit's Firebase Web API key — a public, project-identifying key (NOT a
+ * secret: the real credential is the refresh token read from local disk). It
+ * belongs to the Blitzit app and can't be rotated by us, so it's supplied via
+ * env (BLITZIT_FIREBASE_API_KEY) rather than committed to the repo.
+ */
+function firebaseApiKey(): string {
+  const key = (process.env.BLITZIT_FIREBASE_API_KEY ?? "").trim();
+  if (!key) {
+    throw new Error(
+      "BLITZIT_FIREBASE_API_KEY is not set. Add the Blitzit Firebase web API key to the MCP server env (or .env).",
+    );
+  }
+  return key;
+}
 
 const INDEXEDDB_DIR = join(
   homedir(),
@@ -30,7 +44,7 @@ function readRefreshTokenFromDisk(dir: string = INDEXEDDB_DIR): string {
 }
 
 export async function mintIdToken(refreshToken: string): Promise<{ idToken: string; uid: string }> {
-  const res = await fetch(`https://securetoken.googleapis.com/v1/token?key=${FIREBASE_API_KEY}`, {
+  const res = await fetch(`https://securetoken.googleapis.com/v1/token?key=${firebaseApiKey()}`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({ grant_type: "refresh_token", refresh_token: refreshToken }),
