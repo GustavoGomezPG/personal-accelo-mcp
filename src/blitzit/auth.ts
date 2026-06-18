@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, existsSync } from "node:fs";
+import { readdirSync, readFileSync, existsSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 
@@ -18,29 +18,57 @@ function firebaseApiKey(): string {
   return key;
 }
 
-const INDEXEDDB_DIR = join(
-  homedir(),
-  "Library", "Application Support", "blitzit", "IndexedDB", "app_._0.indexeddb.leveldb",
-);
+const BLITZIT_DIR = join(homedir(), "Library", "Application Support", "blitzit");
+
+/**
+ * Blitzit's leveldb stores that may hold the Firebase refresh token, in priority
+ * order. Newer Blitzit/Firebase builds persist auth in Local Storage; older ones
+ * used IndexedDB. We scan both so the token is found regardless of where the app
+ * keeps it.
+ */
+const TOKEN_DIRS = [
+  join(BLITZIT_DIR, "Local Storage", "leveldb"),
+  join(BLITZIT_DIR, "IndexedDB", "app_._0.indexeddb.leveldb"),
+];
+
+const REFRESH_TOKEN_RE = /AMf-[A-Za-z0-9_-]{60,}/g;
 
 /** Extract the longest Firebase refresh token (starts with "AMf-") from a leveldb blob. */
 export function extractRefreshToken(blob: string): string {
-  const matches = blob.match(/AMf-[A-Za-z0-9_-]{60,}/g);
+  const matches = blob.match(REFRESH_TOKEN_RE);
   if (!matches || matches.length === 0) {
     throw new Error("No Blitzit refresh token found. Open and sign into the Blitzit desktop app, then retry.");
   }
   return matches.reduce((a, b) => (b.length > a.length ? b : a));
 }
 
-function readRefreshTokenFromDisk(dir: string = INDEXEDDB_DIR): string {
-  if (!existsSync(dir)) {
-    throw new Error(`Blitzit app storage not found at ${dir}. Is the Blitzit desktop app installed and signed in?`);
+function readRefreshTokenFromDisk(dirs: string[] = TOKEN_DIRS): string {
+  // Gather every leveldb file across the known stores, newest first, so the
+  // current token (in the active .log / most recent .ldb) wins over stale ones
+  // left behind by previous sign-ins or a since-relocated store.
+  const files: { path: string; mtime: number }[] = [];
+  for (const dir of dirs) {
+    if (!existsSync(dir)) continue;
+    for (const name of readdirSync(dir)) {
+      const path = join(dir, name);
+      try { files.push({ path, mtime: statSync(path).mtimeMs }); } catch { /* skip */ }
+    }
   }
-  let blob = "";
-  for (const name of readdirSync(dir)) {
-    try { blob += readFileSync(join(dir, name), "latin1"); } catch { /* skip locked files */ }
+  if (files.length === 0) {
+    throw new Error(
+      `Blitzit app storage not found under ${BLITZIT_DIR}. Is the Blitzit desktop app installed and signed in?`,
+    );
   }
-  return extractRefreshToken(blob);
+  files.sort((a, b) => b.mtime - a.mtime);
+  for (const { path } of files) {
+    let blob = "";
+    try { blob = readFileSync(path, "latin1"); } catch { continue; /* locked */ }
+    const matches = blob.match(REFRESH_TOKEN_RE);
+    if (matches && matches.length) {
+      return matches.reduce((a, b) => (b.length > a.length ? b : a));
+    }
+  }
+  throw new Error("No Blitzit refresh token found. Open and sign into the Blitzit desktop app, then retry.");
 }
 
 export async function mintIdToken(refreshToken: string): Promise<{ idToken: string; uid: string }> {
