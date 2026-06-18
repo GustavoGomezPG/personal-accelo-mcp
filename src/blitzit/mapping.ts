@@ -33,15 +33,28 @@ export function parseMapping(json: string): Mapping {
  * `Client::SubProject::Description` in the title field, so we match the longest
  * mapping key that the title's leading `::` segments equal (segment boundaries
  * only — never a substring). Falls back to an exact match for keys without `::`.
+ *
+ * Matching is case-insensitive and trims whitespace, so a Blitzit label like
+ * "CADCO" resolves to a map key written "Cadco" (Blitzit casing is inconsistent
+ * and not worth chasing with per-variant label entries).
  */
 export function resolveMapping(map: Mapping, project: string): MappingEntry | undefined {
-  const exact = map[project];
+  // Case-insensitive index of map keys -> entry (maps are small; build per call).
+  // First key wins on a casing collision, matching object insertion order.
+  const index = new Map<string, MappingEntry>();
+  for (const [key, entry] of Object.entries(map)) {
+    const norm = key.trim().toLowerCase();
+    if (!index.has(norm)) index.set(norm, entry);
+  }
+  const lookup = (key: string): MappingEntry | undefined => index.get(key.trim().toLowerCase());
+
+  const exact = lookup(project);
   if (exact) return exact;
   const segments = project.split("::").map((s) => s.trim());
   // Longest prefix first so a more specific "A::B" key wins over "A".
   for (let n = segments.length; n >= 1; n--) {
-    const key = segments.slice(0, n).join("::");
-    if (map[key]) return map[key];
+    const hit = lookup(segments.slice(0, n).join("::"));
+    if (hit) return hit;
   }
   return undefined;
 }

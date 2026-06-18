@@ -42,6 +42,11 @@ describe("resolveMapping", () => {
   it("does not match a partial segment (substring) of a key", () => {
     expect(resolveMapping(m, "Datamaximus::Website")).toBeUndefined();
   });
+  it("matches case-insensitively (Blitzit label casing varies)", () => {
+    expect(resolveMapping(m, "DATAMAX")).toEqual({ objectType: "task", objectId: 1 });
+    expect(resolveMapping(m, "datamax::Website::Thing")).toEqual({ objectType: "task", objectId: 1 });
+    expect(resolveMapping({ Cadco: { objectType: "task", objectId: 9 } }, "CADCO::Website::Meeting")).toEqual({ objectType: "task", objectId: 9 });
+  });
 });
 
 describe("parseMapping (additional guards)", () => {
