@@ -1,4 +1,7 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { writeFileSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { createClient, AcceloError } from "./client.js";
 import type { AcceloConfig } from "../config.js";
 
@@ -17,6 +20,15 @@ function jsonResponse(body: unknown, status = 200) {
 }
 
 describe("createClient", () => {
+  // Force the cookie resolver to fall back to config.sessionCookie so a real
+  // local config/session-cookie file cannot influence these assertions.
+  beforeEach(() => {
+    process.env.ACCELO_SESSION_COOKIE_FILE = "/nonexistent/accelo-session-cookie";
+  });
+  afterEach(() => {
+    delete process.env.ACCELO_SESSION_COOKIE_FILE;
+  });
+
   it("posts to the endpoint with cookie + csrf headers and returns data", async () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ data: { ok: 1 } }));
     const client = createClient(config, fetchMock);
@@ -66,5 +78,20 @@ describe("createClient", () => {
     );
     const client = createClient(config, fetchMock);
     await expect(client.query("{ x }")).rejects.toMatchObject({ code: "GRAPHQL_ERROR" });
+  });
+
+  it("uses the session-cookie file when present (no restart needed)", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "accelo-hotreload-"));
+    const file = join(dir, "session-cookie");
+    writeFileSync(file, "FRESHCOOKIE\n");
+    process.env.ACCELO_SESSION_COOKIE_FILE = file;
+    try {
+      const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ data: { ok: 1 } }));
+      const client = createClient(config, fetchMock);
+      await client.query("{ ok }");
+      expect(fetchMock.mock.calls[0][1].headers["Cookie"]).toBe("AFFINITYLIVE=FRESHCOOKIE");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

@@ -14,7 +14,29 @@ endpoint, so no OAuth application is required.
      → `AFFINITYLIVE` → copy **Value**.
 
    The cookie is a session token and **expires**; when tools start returning
-   `SESSION_EXPIRED`, copy a fresh value.
+   `SESSION_EXPIRED`, refresh it — see **Refreshing the session cookie** below.
+
+## Refreshing the session cookie (no restart)
+
+The `AFFINITYLIVE` cookie expires periodically. You do **not** need to restart
+the MCP server to refresh it. Run:
+
+```bash
+npm run cookie               # opens your Accelo login page, then prompts for the value
+npm run cookie -- <VALUE>    # non-interactive: pass the AFFINITYLIVE value directly
+```
+
+This writes the value to `config/session-cookie` (git-ignored). The server reads
+that file on **every** request, so the new cookie takes effect on the next tool
+call — no restart required.
+
+How it resolves the cookie, in order:
+
+1. `config/session-cookie` file (written by `npm run cookie`) — preferred, hot-reloaded.
+2. `ACCELO_SESSION_COOKIE` env var — the startup fallback (used until the file exists).
+
+Override the file location with `ACCELO_SESSION_COOKIE_FILE` if needed. After the
+first `npm run cookie`, every future refresh is just `npm run cookie` again.
 
 ## Connect to Claude Code / Claude Desktop
 

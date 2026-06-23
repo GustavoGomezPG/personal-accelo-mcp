@@ -1,5 +1,6 @@
 import type { AcceloConfig } from "../config.js";
 import { assertReadOnly } from "./readonly.js";
+import { resolveSessionCookie } from "./cookie-source.js";
 
 export type AcceloErrorCode = "SESSION_EXPIRED" | "GRAPHQL_ERROR" | "HTTP_ERROR";
 
@@ -20,14 +21,14 @@ export interface AcceloClient {
 type FetchLike = (url: string, init: any) => Promise<Response>;
 
 const SESSION_HELP =
-  "Accelo session cookie expired or invalid. Refresh ACCELO_SESSION_COOKIE in .env with a fresh AFFINITYLIVE value from DevTools.";
+  "Accelo session cookie expired or invalid. Run `npm run cookie` to log in and capture a fresh AFFINITYLIVE value (or write it to config/session-cookie). It takes effect on the next request — no server restart needed.";
 
 export function createClient(config: AcceloConfig, fetchImpl: FetchLike = fetch): AcceloClient {
   async function send<T>(operation: string, variables: Record<string, unknown>): Promise<T> {
     const res = await fetchImpl(config.endpoint, {
       method: "POST",
       headers: {
-        "Cookie": `AFFINITYLIVE=${config.sessionCookie}`,
+        "Cookie": `AFFINITYLIVE=${resolveSessionCookie(config)}`,
         "X-CSRF-REQUESTED": "1",
         "Content-Type": "application/json",
         "Accept": "application/json",

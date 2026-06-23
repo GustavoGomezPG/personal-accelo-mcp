@@ -6,6 +6,7 @@
   "bin": { "accelo-mcp": "dist/index.js" },
   "scripts": {
     "build": "tsc",
+    "cookie": "node scripts/extract-cookie.mjs",
     "dev": "tsx src/index.ts",
     "test": "vitest run",
     "test:watch": "vitest"
